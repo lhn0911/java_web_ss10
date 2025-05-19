@@ -11,7 +11,4 @@ import lombok.Setter;
 @Setter
 public class Seat {
     private String seatNumber;
-    private String seatType;
-    private double price;
-    private boolean selected;
 }

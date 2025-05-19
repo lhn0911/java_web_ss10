@@ -14,5 +14,7 @@
 <a href="upload-form">Bai4</a><br>
 <a href="upload">Bai5</a><br>
 <a href="uploadB6">Bai6</a><br>
+<a href="bai7">Bai7</a><br>
+<a href="bai8">Bai8</a><br>
 </body>
 </html>

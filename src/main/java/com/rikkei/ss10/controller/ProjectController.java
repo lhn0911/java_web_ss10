@@ -1,90 +1,86 @@
 package com.rikkei.ss10.controller;
 
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
+
 import com.rikkei.ss10.model.Document;
 import com.rikkei.ss10.model.Project;
-import com.rikkei.ss10.service.ProjectService;
-import com.rikkei.ss10.service.DocumentService;
-
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Controller
-@RequestMapping("/project")
 public class ProjectController {
 
-    @Autowired
-    private ProjectService projectService;
+    private List<Project> projectList = new ArrayList<>();
 
-    @Autowired
-    private DocumentService documentService;
-
-    @Autowired
-    private Cloudinary cloudinary;
-
-    @GetMapping("/form")
-    public String showForm(Model model) {
+    @GetMapping("/bai7")
+    public String showFormProject(Model model) {
         model.addAttribute("project", new Project());
         return "projectForm";
     }
 
-    @PostMapping("/create")
+    @PostMapping("/createProject")
     public String createProject(@ModelAttribute Project project,
-                                @RequestParam("documents[0].file") List<MultipartFile> files) {
-        List<Document> savedDocuments = new ArrayList<>();
-
-        for (MultipartFile file : files) {
-            if (!file.isEmpty()) {
-                try {
-                    Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
-                            ObjectUtils.asMap("resource_type", "auto"));
-
-                    String fileUrl = uploadResult.get("secure_url").toString();
-
+                                @RequestParam("files") List<MultipartFile> files,
+                                Model model) {
+        List<Document> documents = new ArrayList<>();
+        if (files != null) {
+            for (MultipartFile file : files) {
+                if (!file.isEmpty()) {
                     Document doc = new Document();
                     doc.setTitle(file.getOriginalFilename());
-                    doc.setDescription("Uploaded via form"); // có thể lấy từ form nếu cần
-                    doc.setUrl(fileUrl);
-                    doc.setProject(project); // gán project vào document
-
-                    documentService.save(doc);
-                    savedDocuments.add(doc);
-                } catch (IOException e) {
-                    e.printStackTrace();
+                    doc.setDescription("Mô tả tài liệu");
+                    doc.setFile(file);
+                    documents.add(doc);
                 }
             }
         }
+        project.setDocuments(documents);
+        projectList.add(project);
 
-        project.setDocuments(savedDocuments);
-
-        projectService.save(project);
-
-        return "redirect:/project/success";
+        model.addAttribute("project", project);
+        return "redirect:/listProjects";
     }
 
-    @PostMapping("/update")
-    public String updateProject(@ModelAttribute Project project) {
-        projectService.update(project);
-        return "redirect:/project/success";
+    @GetMapping("/listProjects")
+    public String listProjects(Model model) {
+        model.addAttribute("projects", projectList);
+        return "projectList";
     }
 
-    @PostMapping("/delete")
-    public String deleteProject(@RequestParam("id") Long id) {
-        projectService.deleteById(id);
-        return "redirect:/project/success";
+    @GetMapping("/editProject")
+    public String editProject(@RequestParam String name, Model model) {
+        for (Project project : projectList) {
+            if (project.getName().equals(name)) {
+                model.addAttribute("project", project);
+                return "projectForm";
+            }
+        }
+        model.addAttribute("message", "Không tìm thấy dự án");
+        return "redirect:/listProjects";
     }
 
-    @GetMapping("/success")
-    public String showSuccess() {
-        return "success";
+    @PostMapping("/updateProject")
+    public String updateProject(@ModelAttribute Project updatedProject, Model model) {
+        for (int i = 0; i < projectList.size(); i++) {
+            if (projectList.get(i).getName().equals(updatedProject.getName())) {
+                projectList.set(i, updatedProject);
+                model.addAttribute("project", updatedProject);
+                model.addAttribute("message", "Project updated successfully");
+                return "redirect:/listProjects";
+            }
+        }
+        model.addAttribute("message", "Không tìm thấy dự án để cập nhật");
+        return "redirect:/listProjects";
+    }
+
+    @GetMapping("/deleteProject")
+    public String deleteProject(@RequestParam String name, Model model) {
+        projectList.removeIf(project -> project.getName().equals(name));
+        model.addAttribute("message", "Project deleted successfully");
+        return "redirect:/listProjects";
     }
 }
